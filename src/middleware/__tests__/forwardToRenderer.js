@@ -1,5 +1,5 @@
-import { BrowserWindow } from 'electron';
 import forwardToRenderer from '../forwardToRenderer';
+import windowManager from '../../helpers/windowManager';
 
 jest.unmock('../forwardToRenderer');
 
@@ -14,32 +14,47 @@ describe('forwardToRenderer', () => {
     expect(next).toHaveBeenCalledWith(action);
   });
 
-  it('should forward any actions to the renderer', () => {
+  it('should forward actions with a {scope: Symbol} in meta to the specific renderer', () => {
     const next = jest.fn();
     const action = {
       type: 'SOMETHING',
       meta: {
-        some: 'meta',
+        scope: Symbol('W'),
       },
     };
     const send = jest.fn();
-    BrowserWindow.getAllWindows.mockImplementation(() => [
-      {
-        webContents: {
-          send,
-        },
+    windowManager.get.mockImplementation(() => ({
+      webContents: {
+        send,
       },
-    ]);
+    }));
 
     forwardToRenderer()(next)(action);
 
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith('redux-action', {
+    expect(send).toHaveBeenCalledWith('redux-action', action);
+  });
+
+  it('should forward actions with {scope: String} to renderers with the name', () => {
+    const next = jest.fn();
+    const action = {
       type: 'SOMETHING',
       meta: {
-        some: 'meta',
-        scope: 'local',
+        scope: 'ConversationWindow',
       },
-    });
+    };
+    const send = jest.fn();
+
+    windowManager.getAll.mockImplementation(() => ([{
+      webContents: {
+        send,
+      },
+    }]
+    ));
+
+    forwardToRenderer()(next)(action);
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith('redux-action', action);
   });
 });

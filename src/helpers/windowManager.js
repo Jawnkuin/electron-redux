@@ -1,13 +1,4 @@
 import _ from 'lodash';
-import { shell } from 'electron';
-
-// 在需要的时候打开电脑上的浏览器
-const handleRedirect = lwindow => (e, url) => {
-  if (url !== lwindow.webContents.getURL()) {
-    e.preventDefault();
-    shell.openExternal(url);
-  }
-};
 
 class WindowManager {
   constructor() {
@@ -30,7 +21,7 @@ class WindowManager {
     window.on('closed', () => {
       delete this.windows[newID];
       // Actions.closeWindow(newID, name);
-      // action REMOVE_WINDOW tobe added
+      // action REMOVE_WINDOW to be added
     });
     window.on('focus', () => {
       const focusIndex = _.findLastIndex(this.focus, win => win !== null);
@@ -60,10 +51,6 @@ class WindowManager {
         onContentloaded();
       }
     });
-
-    window.webContents.on('will-navigate', handleRedirect(window));
-    window.webContents.on('new-window', handleRedirect(window));
-
 
     if (name) {
       this.nameReferences[name] = this.nameReferences[name] || [];
@@ -105,20 +92,6 @@ class WindowManager {
     if (this.windows[windowID]) {
       this.windows[windowID].close();
     }
-  }
-
-  static getWindowManagerName() {
-    if (process.platform === 'linux') {
-      return process.env['XDG_CURRENT_DESKTOP']; // eslint-disable-line
-    }
-    return undefined;
-  }
-
-  static getWindowManagerGDMName() {
-    if (process.platform === 'linux') {
-      return process.env['GDMSESSION']; // eslint-disable-line
-    }
-    return undefined;
   }
 }
 
