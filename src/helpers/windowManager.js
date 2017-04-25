@@ -1,11 +1,33 @@
 import _ from 'lodash';
 
 class WindowManager {
+  static MAX_LISTENERS = 15;
+
   constructor() {
     this.windows = {};
     this.nameReferences = {};
     this.IDMap = {};
     this.focus = [null];
+    this.addWindowListeners = [];
+    this.closeWindowListeners = [];
+  }
+
+  subscribeAddWindowListener(fn) {
+    if (!fn || typeof fn !== 'function') {
+      throw Error(`${fn} is not a valid callback function`);
+    }
+    let isSubcribed = true;
+    this.addWindowCallbacks.push(fn);
+    // return an unsubcrible function
+    return function unsubcrible() {
+      if (!isSubcribed) {
+        return;
+      }
+
+      isSubcribed = false;
+      const index = this.addWindowCallbacks.indexOf(fn);
+      this.addWindowCallbacks.splice(index, 1);
+    };
   }
 
   add(window, name = null, onContentloaded) {
