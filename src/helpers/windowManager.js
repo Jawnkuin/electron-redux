@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 class WindowManager {
   static MAX_LISTENERS = 15;
 
@@ -7,30 +5,44 @@ class WindowManager {
     this.windows = {};
     this.nameReferences = {};
     this.IDMap = {};
-    this.focus = [null];
-    this.addWindowListeners = [];
-    this.closeWindowListeners = [];
+    this.loadedListeners = [];
+    this.closedListeners = [];
   }
 
-  subscribeAddWindowListener(fn) {
+  subscribeWindowLoadedListener(fn) {
     if (!fn || typeof fn !== 'function') {
       throw Error(`${fn} is not a valid callback function`);
     }
-    let isSubcribed = true;
-    this.addWindowCallbacks.push(fn);
+    if (this.loadedListeners.length >= WindowManager.MAX_LISTENERS) {
+      throw Error(`amount of listeners should not more than ${WindowManager.MAX_LISTENERS} `);
+    }
     // return an unsubcrible function
-    return function unsubcrible() {
-      if (!isSubcribed) {
-        return;
-      }
-
-      isSubcribed = false;
-      const index = this.addWindowCallbacks.indexOf(fn);
-      this.addWindowCallbacks.splice(index, 1);
-    };
+    function unsubcrible() {
+      const index = this.loadedListeners.indexOf(fn);
+      this.loadedListeners.splice(index, 1);
+    }
+    unsubcrible.bind(this);
+    return unsubcrible;
   }
 
-  add(window, name = null, onContentloaded) {
+  subscribeWindowCloseedListener(fn) {
+    if (!fn || typeof fn !== 'function') {
+      throw Error(`${fn} is not a valid callback function`);
+    }
+    if (this.closedListeners.length >= WindowManager.MAX_LISTENERS) {
+      throw Error(`amount of listeners should not more than ${WindowManager.MAX_LISTENERS} `);
+    }
+    this.closedListeners.push(fn);
+    // return an unsubcrible function
+    function unsubcrible() {
+      const index = this.closedListeners.indexOf(fn);
+      this.closedListeners.splice(index, 1);
+    }
+    unsubcrible.bind(this);
+    return unsubcrible;
+  }
+
+  add(window, name = null) {
     if (!name || typeof name !== 'string') {
       throw new Error('"name" has to be a valid string');
     }
@@ -42,36 +54,21 @@ class WindowManager {
 
     window.on('closed', () => {
       delete this.windows[newID];
-      // Actions.closeWindow(newID, name);
-      // action REMOVE_WINDOW to be added
-    });
-    window.on('focus', () => {
-      const focusIndex = _.findLastIndex(this.focus, win => win !== null);
-      if (focusIndex && focusIndex >= 0 && this.focus[focusIndex].id !== window.id) {
-        this.focus[focusIndex].focus();
+      for (let i = 0; i < this.closedListeners.length; i += 1) {
+        const listener = this.closedListeners[i];
+        listener(newID, name);
       }
     });
-    window.on('enter-full-screen', () => {
-      window.webContents.send('window:changefullscreen', true);
-    });
-
-    window.on('leave-full-screen', () => {
-      window.webContents.send('window:changefullscreen', false);
-    });
-
 
     window.webContents.on('did-finish-load', () => {
       if (!window) {
         throw new Error('window is not defined');
       }
-
-      // Actions.addWindow(newID, name);
-      window.show();
-      window.focus();
-      // Callback for window content loaded
-      if (onContentloaded && typeof onContentloaded === 'function') {
-        onContentloaded();
+      for (let i = 0; i < this.loadedListeners.length; i += 1) {
+        const listener = this.loadedListeners[i];
+        listener(newID, name);
       }
+      window.show();
     });
 
     if (name) {
@@ -94,20 +91,13 @@ class WindowManager {
 
   getAll(name) {
     const toReturn = [];
-    _.forEach(this.nameReferences[name] || [], (ID) => {
-      if (this.get(ID)) {
-        toReturn.push(this.get(ID));
-      }
-    });
+    (this.nameReferences[name] || []).forEach(
+      (ID) => {
+        if (this.get(ID)) {
+          toReturn.push(this.get(ID));
+        }
+      });
     return toReturn;
-  }
-
-  forceFocus(window) {
-    const index = this.focus.length;
-    this.focus.push(window);
-    window.on('close', () => {
-      this.focus[index] = null;
-    });
   }
 
   close(windowID) {

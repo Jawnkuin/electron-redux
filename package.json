@@ -1,7 +1,7 @@
 {
   "name": "electron-redux",
-  "version": "1.2.5",
-  "description": "Use redux in the main and browser process in electron",
+  "version": "1.0.1",
+  "description": "Use redux in electron, and control the action flow between main and browser process",
   "main": "dist/index.js",
   "scripts": {
     "test": "rm -rf coverage && jest -c .jestrc --coverage",
