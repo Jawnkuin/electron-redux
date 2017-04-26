@@ -17,6 +17,7 @@ class WindowManager {
     if (this.loadedListeners.length >= MAX_LISTENERS) {
       throw Error(`amount of listeners should not more than ${MAX_LISTENERS} `);
     }
+    this.loadedListeners.push(fn);
     // return an unsubcrible function
     function unsubcrible() {
       const index = this.loadedListeners.indexOf(fn);
@@ -43,7 +44,7 @@ class WindowManager {
     return unsubcrible;
   }
 
-  add(window, name = null) {
+  add(window, name = null, onContentloaded) {
     if (!name || typeof name !== 'string') {
       throw new Error('"name" has to be a valid string');
     }
@@ -68,6 +69,9 @@ class WindowManager {
       for (let i = 0; i < this.loadedListeners.length; i += 1) {
         const listener = this.loadedListeners[i];
         listener(newID, name);
+      }
+      if (onContentloaded && typeof onContentloaded === 'function') {
+        onContentloaded();
       }
       window.show();
     });
