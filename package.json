@@ -1,6 +1,6 @@
 {
-  "name": "electron-redux",
-  "version": "1.0.1",
+  "name": "electron-window-redux",
+  "version": "1.0.2",
   "description": "Use redux in electron, and control the action flow between main and browser process",
   "main": "dist/index.js",
   "scripts": {
@@ -26,7 +26,6 @@
   "dependencies": {
     "debug": "^2.3.3",
     "flux-standard-action": "^1.0.0",
-    "lodash": "^4.17.4",
     "redux": "^3.4.0"
   },
   "peerDependencies": {

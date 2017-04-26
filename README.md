@@ -1,59 +1,54 @@
-# electron-redux
+# electron-window-redux
 
-[![CircleCI](https://circleci.com/gh/hardchor/electron-redux/tree/master.svg?style=svg)](https://circleci.com/gh/hardchor/electron-redux/tree/master)
-[![Greenkeeper badge](https://badges.greenkeeper.io/hardchor/electron-redux.svg)](https://greenkeeper.io/)
-[![Stories in Ready](https://badge.waffle.io/hardchor/electron-redux.png?label=ready&title=Ready)](https://waffle.io/hardchor/electron-redux)
+Use redux in electron, and control the action flow between main and browser process.
 
-- [Motivation](#motivation)
-- [Install](#install)
-- [Actions](#actions)
-	- [Local actions (renderer process)](#local-actions-renderer-process)
-	- [Aliased actions (main process)](#aliased-actions-main-process)
-- [Under the hood](#under-the-hood)
+This project origins from [electron-redux](https://github.com/hardchor/electron-redux).
+Before using this package, reading the original project is highly recommended.
 
-## Motivation
+## Features
 
-Using redux with electron poses a couple of problems. Processes ([main](https://github.com/electron/electron/blob/master/docs/tutorial/quick-start.md#main-process) and [renderer](https://github.com/electron/electron/blob/master/docs/tutorial/quick-start.md#renderer-process)) are completely isolated, and the only mode of communication is [IPC](https://github.com/electron/electron/blob/master/docs/api/ipc-main.md).
+- A `action` fired by main-process can be consumed by one or several specific renderer-processes.
 
-* Where do you keep the state?
-* How do you keep the state in sync across processes?
+- The `state` of each process are individual. Main-process holds some universal state.
 
+- `windowManager` in main-process will use `name` and `windowID` property to identify windows with the same `name` or identify exact one window with `windowID`.
 
-### The solution
-
-`electron-redux` offers an easy to use solution. The redux store on the main process becomes the single source of truth, and stores in the renderer processes become mere proxies. See [under the hood](#under-the-hood).
-
-![electron-redux basic](https://cloud.githubusercontent.com/assets/307162/20675737/385ce59e-b585-11e6-947e-3867e77c783d.png)
 
 ## Install
 
 ```
-npm install --save electron-redux
+npm install --save electron-window-redux
 ```
 
-`electron-redux` comes as redux middleware that is really easy to apply:
+`electron-window-redux` comes as redux middleware that is really easy to apply:
 
 ```javascript
-// in the main store
+// store.js
 import {
-  forwardToRenderer,
-  triggerAlias,
-  replayActionMain,
-} from 'electron-redux';
+  forwardToRenderer
+} from 'electron-window-redux';
+import { createStore, applyMiddleware } from 'redux';
+import rootReducer from './reducers';
 
-const todoApp = combineReducers(reducers);
+// make sure store is singleton in the whole main-process.
+const store = createStore(rootReducer, applyMiddleware(
+  forwardToRenderer
+));
 
-const store = createStore(
-  todoApp,
-  initialState, // optional
-  applyMiddleware(
-    triggerAlias, // optional, see below
-    ...otherMiddleware,
-    forwardToRenderer, // IMPORTANT! This goes last
-  )
-);
 
-replayActionMain(store);
+export default store;
+
+//==========
+
+// main.js
+import { app } from 'electron';
+import { replayActionMain } from 'electron-window-redux';
+import mainStore from './main/store';
+
+app.on('ready', () => {
+  // responce to actions from renderer-processes
+  replayActionMain(mainStore);
+}
 ```
 
 ```javascript
@@ -61,14 +56,12 @@ replayActionMain(store);
 import {
   forwardToMain,
   replayActionRenderer,
-  getInitialStateRenderer,
 } from 'electron-redux';
 
-const todoApp = combineReducers(reducers);
-const initialState = getInitialStateRenderer();
+const rootReducer = combineReducers(reducers);
 
 const store = createStore(
-  todoApp,
+  rootReducer,
   initialState,
   applyMiddleware(
     forwardToMain, // IMPORTANT! This goes first
@@ -79,10 +72,6 @@ const store = createStore(
 replayActionRenderer(store);
 ```
 
-Check out [timesheets](https://github.com/hardchor/timesheets/blob/4991fd472dbb12b0c6e6806c6a01ea3385ab5979/app/shared/store/configureStore.js) for a more advanced example.
-
-And that's it! You are now ready to fire actions without having to worry about synchronising your state between processes.
-
 
 ## Actions
 
@@ -90,9 +79,9 @@ Actions fired **HAVE TO** be [FSA](https://github.com/acdlite/flux-standard-acti
 
 > NB: `redux-thunk` is not FSA-compliant out of the box, but can still produce compatible actions once the async action fires.
 
-### Local actions (renderer process)
+### Local actions(renderer process)
 
-By default, all actions are being broadcast from the main store to the renderer processes. However, some state should only live in the renderer (e.g. `isPanelOpen`). `electron-redux` introduces the concept of action scopes.
+By default, all actions are being broadcast from the renderer processes to the main processes. However, some state should only live in the renderer (e.g. `isPanelOpen`). `electron-redux` introduces the concept of action scopes.
 
 To stop an action from propagating from renderer to main store, simply set the scope to `local`:
 
@@ -108,33 +97,16 @@ function myLocalActionCreator() {
 }
 ```
 
+Lifecycle of action with `local` scope:
 
-### Aliased actions (main process)
+`Renderer`: `store.dispatch`-> `Action` -> `store.reducers`
 
-Most actions will originate from the renderer side, but not all should be executed there as well. A great example is fetching of data from an external source, e.g. using [promise middleware](https://github.com/acdlite/redux-promise), which should only ever be executed once (i.e. in the main process). This can be achieved using the `triggerAlias` middleware mentioned [above](#install).
+### specified actions(renderer process & main process)
 
-Using the `createAliasedAction` helper, you can quite easily create actions that are are only being executed in the main process, and the result of which is being broadcast to the renderer processes.
+`electron-window-redux` use `name` and `windowID` to identify browserWindow.
+(reminding that this windowID is generated by `Symbol` not the internal one created by `electron`).
 
-```javascript
-import { createAliasedAction } from 'electron-redux';
+eg: Set scope to `dialog` the action will be sent to browserWindows with name `dialog`, no matter the action is fired from
+main store or renderer store.
 
-export const importGithubProjects = createAliasedAction(
-  'IMPORT_GITHUB_PROJECTS', // unique identifier
-  (accessToken, repoFullName) => ({
-    type: 'IMPORT_GITHUB_PROJECTS',
-    payload: importProjects(accessToken, repoFullName),
-  })
-);
-```
-
-Check out [timesheets](https://github.com/hardchor/timesheets/blob/4ccaf08dee4e1a02850b5bf36e37c537fef7d710/app/shared/actions/github.js) for more examples.
-
-
-
-## Under the hood
-
-TODO
-
-- forwardToMain
-- forwardToRenderer
-- triggerAlias
+actions scope with `windowID` go the same way, except the only browserWindow with the same windowID will receive the action.

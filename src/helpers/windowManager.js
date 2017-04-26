@@ -1,5 +1,6 @@
+const MAX_LISTENERS = 15;
 class WindowManager {
-  static MAX_LISTENERS = 15;
+
 
   constructor() {
     this.windows = {};
@@ -13,8 +14,8 @@ class WindowManager {
     if (!fn || typeof fn !== 'function') {
       throw Error(`${fn} is not a valid callback function`);
     }
-    if (this.loadedListeners.length >= WindowManager.MAX_LISTENERS) {
-      throw Error(`amount of listeners should not more than ${WindowManager.MAX_LISTENERS} `);
+    if (this.loadedListeners.length >= MAX_LISTENERS) {
+      throw Error(`amount of listeners should not more than ${MAX_LISTENERS} `);
     }
     // return an unsubcrible function
     function unsubcrible() {
@@ -29,8 +30,8 @@ class WindowManager {
     if (!fn || typeof fn !== 'function') {
       throw Error(`${fn} is not a valid callback function`);
     }
-    if (this.closedListeners.length >= WindowManager.MAX_LISTENERS) {
-      throw Error(`amount of listeners should not more than ${WindowManager.MAX_LISTENERS} `);
+    if (this.closedListeners.length >= MAX_LISTENERS) {
+      throw Error(`amount of listeners should not more than ${MAX_LISTENERS} `);
     }
     this.closedListeners.push(fn);
     // return an unsubcrible function
