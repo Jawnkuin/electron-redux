@@ -1,6 +1,6 @@
 {
   "name": "electron-window-redux",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Use redux in electron, and control the action flow between main and browser process",
   "main": "dist/index.js",
   "scripts": {

@@ -17,7 +17,7 @@ const forwardToMain = store => next => (action) => { // eslint-disable-line no-u
 
     // stop action in-flight
     // eslint-disable-next-line consistent-return
-    return;
+    return next(action);
   }
 
   // eslint-disable-next-line consistent-return
