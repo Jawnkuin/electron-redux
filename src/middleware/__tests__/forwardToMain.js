@@ -70,6 +70,6 @@ describe('forwardToMain', () => {
     expect(ipcRenderer.send).toHaveBeenCalledTimes(1);
     expect(ipcRenderer.send).toHaveBeenCalledWith('redux-action', action);
 
-    expect(next).toHaveBeenCalledTimes(0);
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });
