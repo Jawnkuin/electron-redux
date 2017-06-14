@@ -1,6 +1,6 @@
 {
   "name": "electron-window-redux",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Use redux in electron, and control the action flow between main and browser process",
   "main": "dist/index.js",
   "scripts": {
@@ -18,7 +18,7 @@
   "author": "Joseph Ku <jawnkuin@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hardchor/electron-redux.git"
+    "url": "https://github.com/Jawnkuin/electron-window-redux.git"
   },
   "homepage": "https://github.com/Jawnkuin/electron-window-redux",
   "bugs": "https://github.com/Jawnkuin/electron-window-redux/issues",

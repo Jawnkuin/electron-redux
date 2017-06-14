@@ -18,16 +18,16 @@ class WindowManager {
       throw Error(`amount of listeners should not more than ${MAX_LISTENERS} `);
     }
     this.loadedListeners.push(fn);
+    const listeners = this.loadedListeners;
     // return an unsubcrible function
     function unsubcrible() {
-      const index = this.loadedListeners.indexOf(fn);
-      this.loadedListeners.splice(index, 1);
+      const index = listeners.indexOf(fn);
+      listeners.splice(index, 1);
     }
-    unsubcrible.bind(this);
     return unsubcrible;
   }
 
-  subscribeWindowCloseedListener(fn) {
+  subscribeWindowClosedListener(fn) {
     if (!fn || typeof fn !== 'function') {
       throw Error(`${fn} is not a valid callback function`);
     }
@@ -36,11 +36,11 @@ class WindowManager {
     }
     this.closedListeners.push(fn);
     // return an unsubcrible function
+    const listeners = this.closedListeners;
     function unsubcrible() {
-      const index = this.closedListeners.indexOf(fn);
-      this.closedListeners.splice(index, 1);
+      const index = listeners.indexOf(fn);
+      listeners.splice(index, 1);
     }
-    unsubcrible.bind(this);
     return unsubcrible;
   }
 
@@ -63,9 +63,6 @@ class WindowManager {
     });
 
     window.webContents.on('did-finish-load', () => {
-      if (!window) {
-        throw new Error('window is not defined');
-      }
       for (let i = 0; i < this.loadedListeners.length; i += 1) {
         const listener = this.loadedListeners[i];
         listener(newID, name);
